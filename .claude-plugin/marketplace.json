@@ -1,0 +1,5 @@
+{
+  "name": "thread-status",
+  "owner": { "name": "Tereseus" },
+  "plugins": [{ "name": "thread-status", "source": "./" }]
+}
