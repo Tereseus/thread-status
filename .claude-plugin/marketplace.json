@@ -1,5 +1,13 @@
 {
   "name": "thread-status",
-  "owner": { "name": "Tereseus" },
-  "plugins": [{ "name": "thread-status", "source": "./" }]
+  "owner": {
+    "name": "Tereseus"
+  },
+  "plugins": [
+    {
+      "name": "thread-status",
+      "source": "./"
+    }
+  ],
+  "description": "Thread Status: a Claude desktop app panel showing which threads need you, which are working, and how scheduled jobs ran"
 }
