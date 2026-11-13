@@ -155,7 +155,7 @@ export const register: Register = on => {
     await tick()
     $.clock.every(POLL_MS, () => void tick())
     await $.command.register({ name: 'threads', description: 'Thread Status: which threads need you, which are working, and how your scheduled jobs ran' })
-    void $.ui.open({ id: PANE, title: 'Threads' }).catch(() => {})
+    void $.ui.open({ id: PANE, title: 'Thread Status' }).catch(() => {})
     return next(e)
   })
 
@@ -181,7 +181,7 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'threads' }, async $ => {
-    await $.ui.open({ id: PANE, title: 'Threads' })
+    await $.ui.open({ id: PANE, title: 'Thread Status' })
     return { text: 'Thread Status opened.' }
   })
 
