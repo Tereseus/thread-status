@@ -15,8 +15,8 @@ const POLL_MS = 15_000
 const WINDOW_MS = 3 * 24 * 3600_000 // only sessions touched in the last 3 days
 const STALE_MS = 2 * 3600_000 // a "working" thread silent for 2 hours has died, not worked
 // A thread "needs you" when its last turn ended asking you something. A mod cannot read transcripts (they grow to
-// gigabytes), so each thread's own copy of this mod records its last answer's ending when the turn completes, in
-// ~/.claude/thread-status/asks/<session id>.json, and every copy reads them all.
+// gigabytes), so each thread's own copy of this mod records its last answer's ending when the turn completes, in the
+// mod's own store under ask:<session id>. The engine reads the store from disk on every call, so every copy sees them all.
 export const ASK_RE = /\?|\b(tell me|let me know|want me to|should i|do you want|which (one|ones)|your call|ok them|approve|pick one|choose|confirm|say the word|say go|waiting (on|for) you)\b/i
 export const askOf = (answer: string): string => {
   const tail = String(answer || '').slice(-250) // only the closing lines: a "?" quoted further up is not a question to you
@@ -67,7 +67,6 @@ export const register: Register = on => {
       (xdg || (home && home + '/.config')) && (xdg || home + '/.config') + '/Claude/claude-code-sessions',
     ].filter(Boolean) as string[]
 
-    const askDir = home ? home + '/.claude/thread-status/asks' : ''
     const list = async (p: string) => {
       try { return await $.fs.list(p) } catch { return [] }
     }
@@ -107,14 +106,12 @@ export const register: Register = on => {
       }
 
       const asks = new Map<string, { at: number; ask: string }>()
-      if (askDir !== '') {
-        for (const f of await list(askDir)) {
-          if (!f.name.endsWith('.json') || now - f.mtimeMs > WINDOW_MS) continue
-          try {
-            const a = JSON.parse(await $.fs.read(askDir + '/' + f.name))
-            asks.set(f.name.slice(0, -5), { at: Number(a.at) || 0, ask: String(a.ask || '') })
-          } catch {}
-        }
+      for (const k of await $.store.keys().catch(() => [] as string[])) {
+        if (!k.startsWith('ask:')) continue
+        const a = (await $.store.get(k).catch(() => undefined)) as { at?: number; ask?: string } | undefined
+        const at = Number(a?.at) || 0
+        if (now - at > WINDOW_MS) { await $.store.delete(k).catch(() => {}); continue } // keep the store small
+        asks.set(k.slice(4), { at, ask: String(a?.ask || '') })
       }
       const threads: Thread[] = []
       const byTask = new Map<string, Meta[]>()
@@ -161,18 +158,16 @@ export const register: Register = on => {
   // Each thread records how its own turn ended, for every copy of this mod to read.
   on('turn.start', async ($, e, next) => {
     if (e.agentId === undefined) {
-      const home = ((await $.env.get('HOME').catch(() => '')) || (await $.env.get('USERPROFILE').catch(() => ''))) ?? ''
       const id = await $.session.id().catch(() => '')
-      if (home && id) await $.fs.write(`${home}/.claude/thread-status/asks/${id}.json`, JSON.stringify({ at: await $.clock.now(), ask: '' })).catch(() => {})
+      if (id) await $.store.set('ask:' + id, { at: await $.clock.now(), ask: '' }).catch(() => {})
     }
     return next(e)
   })
   on('turn.complete', async ($, e, next) => {
     const r = await next(e)
     if (e.agentId === undefined && !e.isAborted) {
-      const home = ((await $.env.get('HOME').catch(() => '')) || (await $.env.get('USERPROFILE').catch(() => ''))) ?? ''
       const id = await $.session.id().catch(() => '')
-      if (home && id) await $.fs.write(`${home}/.claude/thread-status/asks/${id}.json`, JSON.stringify({ at: await $.clock.now(), ask: askOf(e.answer) })).catch(() => {})
+      if (id) await $.store.set('ask:' + id, { at: await $.clock.now(), ask: askOf(e.answer) }).catch(() => {})
     }
     return r
   })

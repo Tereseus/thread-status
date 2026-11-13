@@ -18,11 +18,13 @@ const wire = (on: any) => {
     const p = String(e.path).split(String.fromCharCode(92)).join('/')
     if (p.endsWith('claude-code-sessions')) return { value: [{ name: 'acct', kind: 'dir', size: 0, mtimeMs: 0 }] }
     if (p.endsWith('/acct')) return { value: [{ name: 'org', kind: 'dir', size: 0, mtimeMs: 0 }] }
-    if (p.endsWith('/thread-status/asks')) return { value: [{ name: 'cf.json', kind: 'file', size: 10, mtimeMs: NOW - 1000 }] }
     if (p === DIR) return { value: Object.keys(files).map(n => ({ name: n, kind: 'file', size: 10, mtimeMs: NOW - 1000 })) }
     throw new Error('ENOENT ' + p)
   })
-  on('fs.read', (_: any, e: any) => String(e.path).endsWith('cf.json') ? { value: JSON.stringify({ at: NOW - 299_000, ask: 'Tell me which ones pass.' }) } : ({ value: JSON.stringify(files[String(e.path).split(String.fromCharCode(92)).join('/').split('/').pop() as string]) }))
+  on('fs.read', (_: any, e: any) => ({ value: JSON.stringify(files[String(e.path).split(String.fromCharCode(92)).join('/').split('/').pop() as string]) }))
+  on('store.keys', () => ({ value: ['ask:cf', 'ask:old'] }))
+  on('store.get', (_: any, e: any) => ({ value: e.key === 'ask:cf' ? { at: NOW - 299_000, ask: 'Tell me which ones pass.' } : { at: NOW - 9 * 24 * 3600_000, ask: 'stale?' } }))
+  on('store.delete', () => ({ value: undefined }))
   on('clock.every', () => ({ value: undefined }))
   on('command.register', () => ({ value: { command: 'threads' } }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
@@ -49,15 +51,13 @@ test('sorts threads into needs you, working, done and jobs', async ($, on) => {
 })
 
 test('a turn that ends with a question records it for every panel', async ($, on) => {
-  const written: Record<string, string> = {}
-  on('env.get', (_: any, e: any) => ({ value: [e.name, e.key, e].includes('HOME') ? 'C:/home' : undefined }))
+  const written: Record<string, any> = {}
   on('session.id', () => ({ value: 'abc' }))
   on('clock.now', () => ({ value: NOW }))
-  on('fs.write', (_: any, e: any) => { written[String(e.path)] = String(e.text); return { value: undefined } })
+  on('store.set', (_: any, e: any) => { written[String(e.key)] = e.value; return { value: undefined } })
   on('turn.complete', (_: any, e: any) => ({ text: e.answer }))
   await $.turn.complete({ answer: 'Done. Want me to push it now?', durationMs: 10, isAborted: false, turnId: 't1', reason: 'answer' } as any)
-  const key = Object.keys(written).find(k => k.split(String.fromCharCode(92)).join('/').endsWith('/thread-status/asks/abc.json')) || ''
-  if (!key) throw new Error('written: ' + JSON.stringify(Object.keys(written)))
-  const rec = JSON.parse(written[key] || '{}')
+  const rec = written['ask:abc']
+  if (!rec) throw new Error('written: ' + JSON.stringify(Object.keys(written)))
   expect(rec.ask).toContain('push it now')
 })

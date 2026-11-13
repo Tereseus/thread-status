@@ -31,12 +31,12 @@ Then type `/reload-plugins` in any open thread, or start a new one.
 
 ## How "needs you" works
 
-When a thread finishes a turn, its copy of Thread Status notes whether the end of the reply asks you something ("Want me to…?", "Tell me which…"). It saves that note in `~/.claude/thread-status/asks/`, and every thread's panel reads those notes. A thread only shows up there after it has finished a turn with the plugin installed.
+When a thread finishes a turn, its copy of Thread Status notes whether the end of the reply asks you something ("Want me to…?", "Tell me which…"). It saves that note in the plugin's own store (Claude Code keeps it with your plugin data), and every thread's panel reads those notes. A thread only shows up there after it has finished a turn with the plugin installed.
 
 ## What it reads, writes and hooks
 
-- **Reads** the desktop app's session files (`claude-code-sessions/<account>/<org>/local_*.json` under the app's data folder) and its own notes in `~/.claude/thread-status/asks/`.
-- **Writes** one small JSON file per thread, `~/.claude/thread-status/asks/<session id>.json`, holding the time and the closing words of that thread's last answer (only when they ask you something). Nothing else reads or runs these files; it is not a settings, start-up, build or instructions file.
+- **Reads** the desktop app's session files (`claude-code-sessions/<account>/<org>/local_*.json` under the app's data folder). It reads them only; it never changes them.
+- **Writes no files.** It keeps one note per thread in the plugin's own store: the time and the closing words of that thread's last answer, kept only when they ask you something. Notes older than 3 days are removed.
 - **Adds** the `/threads` command, which opens the panel. Its `command.run` hook only answers `/threads` and leaves every other command alone.
 - **Hooks** `turn.start` and `turn.complete` to write the note above, and `session.start` to open the panel. It changes nothing about the turn.
 - Sends nothing over the network.
