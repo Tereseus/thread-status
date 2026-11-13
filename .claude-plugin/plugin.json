@@ -1,6 +1,6 @@
 {
   "name": "thread-status",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A panel beside the chat: which Claude threads need you, which are working, what just finished, and how your scheduled jobs ran",
   "types": "./types/index.d.ts",
   "license": "MIT",

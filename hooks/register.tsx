@@ -22,7 +22,6 @@ export const askOf = (answer: string): string => {
   const tail = String(answer || '').slice(-250) // only the closing lines: a "?" quoted further up is not a question to you
   return ASK_RE.test(tail) ? tail.replace(/\s+/g, ' ').trim().slice(-160) : ''
 }
-const askPath = (home: string, id: string) => (home && id ? home + '/.claude/thread-status/asks/' + id + '.json' : '')
 const snapshot = atom({ plugin: 'thread-status', key: 'snapshot' } as const, null)
 
 type Meta = {
@@ -164,8 +163,7 @@ export const register: Register = on => {
     if (e.agentId === undefined) {
       const home = ((await $.env.get('HOME').catch(() => '')) || (await $.env.get('USERPROFILE').catch(() => ''))) ?? ''
       const id = await $.session.id().catch(() => '')
-      const f = askPath(home, id)
-      if (f) await $.fs.write(f, JSON.stringify({ at: await $.clock.now(), ask: '' })).catch(() => {})
+      if (home && id) await $.fs.write(`${home}/.claude/thread-status/asks/${id}.json`, JSON.stringify({ at: await $.clock.now(), ask: '' })).catch(() => {})
     }
     return next(e)
   })
@@ -174,8 +172,7 @@ export const register: Register = on => {
     if (e.agentId === undefined && !e.isAborted) {
       const home = ((await $.env.get('HOME').catch(() => '')) || (await $.env.get('USERPROFILE').catch(() => ''))) ?? ''
       const id = await $.session.id().catch(() => '')
-      const f = askPath(home, id)
-      if (f) await $.fs.write(f, JSON.stringify({ at: await $.clock.now(), ask: askOf(e.answer) })).catch(() => {})
+      if (home && id) await $.fs.write(`${home}/.claude/thread-status/asks/${id}.json`, JSON.stringify({ at: await $.clock.now(), ask: askOf(e.answer) })).catch(() => {})
     }
     return r
   })
