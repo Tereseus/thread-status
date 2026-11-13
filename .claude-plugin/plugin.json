@@ -10,5 +10,6 @@
   "icon": "./.claude-plugin/icon.png",
   "displayName": "Thread Status",
   "homepage": "https://github.com/Tereseus/thread-status",
-  "repository": "https://github.com/Tereseus/thread-status"
+  "repository": "https://github.com/Tereseus/thread-status",
+  "privacyPolicyUrl": "https://github.com/Tereseus/thread-status/blob/main/PRIVACY.md"
 }

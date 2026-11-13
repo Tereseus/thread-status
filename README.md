@@ -46,6 +46,10 @@ When a thread finishes a turn, its copy of Thread Status notes whether the end o
 - The desktop app's session files aren't a published format, so a future app update could change what the panel can see. If a section looks wrong, open an issue.
 - Threads in the terminal version of Claude Code have no desktop session files, so they don't show up in the panel.
 
+## Privacy
+
+See [PRIVACY.md](PRIVACY.md). In short: everything stays on your computer and nothing is sent anywhere.
+
 ## License
 
 MIT
